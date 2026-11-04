@@ -9,6 +9,7 @@ import os
 
 app = FastAPI(title="University Security Backend", version="2.0.0")
 
+# Enable CORS for Flutter clients across all platforms
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,9 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ensure uploads directory exists and serve files publicly
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+# Pre-loaded Users Database
 USERS_DB = {
     "CSO-MASTER-01": {
         "badgeNumber": "CSO-MASTER-01",
@@ -53,6 +56,7 @@ SYSTEM_ALERTS = [
     }
 ]
 
+# WebSocket Connection Manager for real-time chat
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -62,11 +66,15 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
         for connection in self.active_connections:
-            await connection.send_json(message)
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
 
 manager = ConnectionManager()
 
@@ -110,7 +118,7 @@ async def send_message(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        media_url = f"https://university-security-backend.onrender.com/uploads/{file_filename}"
+        media_url = f"https://security-tvhw.onrender.com/uploads/{file_filename}"
         media_type = "image"
 
     msg_data = {
